@@ -1,3 +1,27 @@
+
+//  binarytree.go
+//
+//  Created by Dinesh Appavoo
+//	Copyright (c) 2015 ICRL
+//
+//	Permission is hereby granted, free of charge, to any person obtaining a copy
+//	of this software and associated documentation files (the "Software"), to deal
+//	in the Software without restriction, including without limitation the rights
+//	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+//	copies of the Software, and to permit persons to whom the Software is
+//	furnished to do so, subject to the following conditions:
+//
+//	The above copyright notice and this permission notice shall be included in
+//	all copies or substantial portions of the Software.
+//
+//	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+//	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+//	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+//	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+//	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+//	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+//	THE SOFTWARE.
+//
 // Go's concurrency primitives make it easy to
 // express concurrent concepts, such as
 // this binary tree comparison.
@@ -21,60 +45,30 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"sync"
 )
 
 // A Tree is a binary tree with integer values.
 type Tree struct {
-	Left   *Tree
-	Value  int
-	Right  *Tree
-	Parent *Tree
+	root *node
+	size int
+	lock  *sync.Mutex
+}
+
+//Node struct for binary tree
+type node struct {
+	Left   *node
+	Value  interface{}
+	Right  *node
+	Parent *node
 	Visited bool
 }
 
-// Walk traverses a tree depth-first,
-// sending each Value on a channel.
-func Walk(t *Tree, ch chan int) {
-	if t == nil {
-		return
-	}
-	Walk(t.Left, ch)
-	ch <- t.Value
-	Walk(t.Right, ch)
-}
-
-// Walker launches Walk in a new goroutine,
-// and returns a read-only channel of values.
-func Walker(t *Tree) <-chan int {
-	ch := make(chan int)
-	go func() {
-		Walk(t, ch)
-		close(ch)
-	}()
-	return ch
-}
-
-// Compare reads values from two Walkers
-// that run simultaneously, and returns true
-// if t1 and t2 have the same contents.
-func Compare(t1, t2 *Tree) bool {
-	c1, c2 := Walker(t1), Walker(t2)
-	for {
-		v1, ok1 := <-c1
-		v2, ok2 := <-c2
-		if !ok1 || !ok2 {
-			return ok1 == ok2
-		}
-		if v1 != v2 {
-			break
-		}
-	}
-	return false
-}
+/
 
 // New returns a new, random binary tree
 // holding the values 1k, 2k, ..., nk.
-func New(n, k int) *Tree {
+func NewTree(n, k int) *Tree {
 	var t *Tree
 	for _, v := range rand.Perm(n) {
 		t = insert(t, (1+v)*k)
@@ -83,8 +77,10 @@ func New(n, k int) *Tree {
 }
 
 // New returns a new, empty binary tree
-func NewTree() *Tree {
-	return &Tree{nil, 0, nil, nil, false}
+func New() *Tree {
+	t := &Tree{}
+	t.lock = &sync.Mutex{}
+	return t
 }
 
 //NewMinimalHeightBST gives the minimal height tree from the given sorted array
@@ -100,27 +96,12 @@ func NewMinimalHeightBST(arr []int, low int, high int) *Tree {
 	return t1
 }
 
-//Traverse prints the tree
-func InOrderTraverse(t *Tree) {
+//Function to insert a new node into the tree
+func (t *Tree) insert(t *Tree, v int) *Tree {
 	if t == nil {
-		return
-	}
-	InOrderTraverse(t.Left)
-	fmt.Print(t.Value, " ")
-	InOrderTraverse(t.Right)
-}
-
-//Height gives the height of the BST
-func Height(t *Tree) float64 {
-	if t == nil {
-		return 0
-	}
-	return math.Max(Height(t.Left), Height(t.Right)) + 1
-}
-
-func insert(t *Tree, v int) *Tree {
-	if t == nil {
-		return &Tree{nil, v, nil, t, false}
+		t1 := &Tree{}
+		t1.Parent = t
+		return t1
 	}
 	if t.Left == nil && t.Right == nil {
 		if v < t.Value {
@@ -137,6 +118,37 @@ func insert(t *Tree, v int) *Tree {
 	t.Right = insert(t.Right, v)
 	return t
 }
+
+//Function to remove a node
+func (t *Tree) Remove() interface{} {
+
+}
+
+//Function to get a the value
+func (t *Tree) Get() interface{} {
+
+}
+
+//Traverse prints the tree
+func InOrderTraverse(t *Tree) {
+	if t == nil {
+		return
+	}
+	InOrderTraverse(t.Left)
+	fmt.Print(t.Value, " ")
+	InOrderTraverse(t.Right)
+}
+
+//Height gives the height of the BST
+func Height(t *Tree) int {
+	if t == nil {
+		return 0
+	}
+	height := math.Max(Height(t.Left), Height(t.Right)) + 1
+	return int(height)
+}
+
+
 
 func main() {
 	//t1 := New(100, 1)
